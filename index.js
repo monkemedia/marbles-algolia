@@ -91,10 +91,12 @@ dotenv.config();
             keywords: item.search_keywords,
             customer_url: item.custom_url,
             categories: item.categories,
-            image: item.images.find(img => img.is_thumbnail)?.url_standard || '',
+            image: item.images.find(img => img.is_thumbnail)?.url_standard,
             brand: item.brand_id,
             sale_price: item.sale_price,
-            price: item.price
+            price: item.price,
+            custom_url: item.custom_url,
+            total_sold: item.total_sold
           })
 
           addCatIds(item.categories)
