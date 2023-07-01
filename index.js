@@ -20,6 +20,7 @@ dotenv.config();
 
     let products = []
     const categoryIds = []
+    const brandIds = []
 
 
     const addCatIds = (ids) => {
@@ -30,8 +31,30 @@ dotenv.config();
       })
     }
 
+    const addBrandId = (id) => {
+      if(!brandIds.includes(id)) {
+        brandIds.push(id)
+      }
+    }
+
     const getCategories = async (catIds) => {
-      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/categories?id:in=${catIds}&is_visible=true`, { 
+      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/categories?id:in=${catIds}&is_visible=true&limit=100`, { 
+        method: 'GET', 
+        headers: {
+          Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Auth-Token': BIG_ACCESS_TOKEN
+      
+        }
+      })
+
+      const data = await response.json()
+
+      return data.data.map(({ id, name, custom_url }) => ({ id, name, url: custom_url.url }))
+    }
+
+    const getBrands = async (brandIds) => {
+      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/brands?id:in=${brandIds}`, { 
         method: 'GET', 
         headers: {
           Accept: 'application/json',
@@ -41,12 +64,11 @@ dotenv.config();
       })
 
       const data = await response.json()
-
       return data.data.map(({ id, name }) => ({ id, name}))
     }
     
     const getProducts = async (page = 1) => {
-      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/?page=${page}&is_visible=true`, { 
+      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/?page=${page}&is_visible=true&include=images`, { 
         method: 'GET', 
         headers: {
           Accept: 'application/json',
@@ -56,6 +78,7 @@ dotenv.config();
       })
 
       const data = await response.json()
+
 
 
       if(data.meta.pagination.current_page <= data.meta.pagination.total_pages) {
@@ -66,10 +89,16 @@ dotenv.config();
             sku: item.sku,
             description: item.description,
             keywords: item.search_keywords,
-            categories: item.categories
+            customer_url: item.custom_url,
+            categories: item.categories,
+            image: item.images.find(img => img.is_thumbnail)?.url_standard || '',
+            brand: item.brand_id,
+            sale_price: item.sale_price,
+            price: item.price
           })
 
           addCatIds(item.categories)
+          addBrandId(item.brand_id)
         })
 
         await getProducts(data.meta.pagination.current_page + 1)
@@ -88,11 +117,31 @@ dotenv.config();
       })
       return {
         ...prod,
-        categories: newCatArray
+        categories: newCatArray.map(cat => cat.name)
+      }
+    })
+
+    const brands = await getBrands(brandIds)
+
+    products = products.map(prod => {
+      return {
+        ...prod,
+        brand: brands.find(brand => brand.id === prod.brand)?.name
       }
     })
 
     await index.saveObjects(products).wait();
+
+    await index.setSettings({
+      // searchableAttributes: [
+      //   'name',
+      //   'categories'
+      // ],
+      attributesForFaceting: [
+        'brand',
+        'categories',
+      ]
+    })
 
     res = await index.search("");
   } catch (err) {
