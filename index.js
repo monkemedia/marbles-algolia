@@ -89,7 +89,6 @@ dotenv.config();
             sku: item.sku,
             description: item.description,
             keywords: item.search_keywords,
-            customer_url: item.custom_url,
             categories: item.categories,
             image: item.images.find(img => img.is_thumbnail)?.url_standard,
             brand: item.brand_id,
@@ -132,13 +131,11 @@ dotenv.config();
       }
     })
 
+    await index.clearObjects();
+
     await index.saveObjects(products).wait();
 
     await index.setSettings({
-      // searchableAttributes: [
-      //   'name',
-      //   'categories'
-      // ],
       attributesForFaceting: [
         'brand',
         'categories',
