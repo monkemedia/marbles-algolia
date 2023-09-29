@@ -38,6 +38,11 @@ dotenv.config();
     }
 
     const getCategories = async (catIds) => {
+      const createCategoryID = (url) => {
+        if (url) {
+          return url.split('/').filter(e => e)[0]
+        }
+      }
       const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/categories?id:in=${catIds}&is_visible=true&limit=100`, { 
         method: 'GET', 
         headers: {
@@ -50,7 +55,7 @@ dotenv.config();
 
       const data = await response.json()
 
-      return data.data.map(({ id, name, custom_url }) => ({ id, name, url: custom_url.url }))
+      return data.data.map(({ id, name, custom_url }) => ({ id, name, url: custom_url.url, categoryID: createCategoryID(custom_url.url) }))
     }
 
     const getBrands = async (brandIds) => {
@@ -95,7 +100,8 @@ dotenv.config();
             sale_price: item.sale_price,
             price: item.price,
             custom_url: item.custom_url,
-            total_sold: item.total_sold
+            total_sold: item.total_sold,
+            gtin: item.gtin
           })
 
           addCatIds(item.categories)
@@ -118,7 +124,8 @@ dotenv.config();
       })
       return {
         ...prod,
-        categories: newCatArray.map(cat => cat.name)
+        categories: newCatArray.map(cat => cat.name),
+        categoryIDs: newCatArray.map(cat => cat.categoryID)
       }
     })
 
@@ -139,6 +146,7 @@ dotenv.config();
       attributesForFaceting: [
         'brand',
         'categories',
+        'searchable(categoryIDs)'
       ]
     })
 
