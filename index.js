@@ -1,6 +1,7 @@
 const algoliasearch = require("algoliasearch");
 const fetch = require('node-fetch')
 const dotenv = require("dotenv");
+const dayjs = require("dayjs")
 
 dotenv.config();
 
@@ -73,7 +74,7 @@ dotenv.config();
     }
     
     const getProducts = async (page = 1) => {
-      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/?page=${page}&is_visible=true&include=images`, { 
+      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/?page=${page}&is_visible=true&include=images,custom_fields`, { 
         method: 'GET', 
         headers: {
           Accept: 'application/json',
@@ -83,6 +84,14 @@ dotenv.config();
       })
 
       const data = await response.json()
+
+      const getFacetColor = (item) => {
+        const customfields = item?.custom_fields
+
+        if (!customfields) return null
+
+        return customfields.find(field => field.name === 'facet_color')?.value
+      }
 
 
 
@@ -101,7 +110,9 @@ dotenv.config();
             price: item.price,
             custom_url: item.custom_url,
             total_sold: item.total_sold,
-            gtin: item.gtin
+            modified_at: dayjs(item.date_modified).unix(),
+            gtin: item.gtin,
+            facet_color: getFacetColor(item)
           })
 
           addCatIds(item.categories)
@@ -146,6 +157,8 @@ dotenv.config();
       attributesForFaceting: [
         'brand',
         'categories',
+        'price',
+        'facet_color',
         'searchable(categoryIDs)'
       ]
     })
