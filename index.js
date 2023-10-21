@@ -41,7 +41,8 @@ dotenv.config();
     const getCategories = async (catIds) => {
       const createCategoryID = (url) => {
         if (url) {
-          return url.split('/').filter(e => e)[0]
+          const splitCategories = url.split('/').filter(e => e)
+          return splitCategories[splitCategories.length - 1]
         }
       }
       const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/categories?id:in=${catIds}&is_visible=true&limit=100`, { 
@@ -110,7 +111,7 @@ dotenv.config();
             price: item.price,
             custom_url: item.custom_url,
             total_sold: item.total_sold,
-            modified_at: dayjs(item.date_modified).unix(),
+            date_created: dayjs(item.date_created).unix(),
             gtin: item.gtin,
             facet_color: getFacetColor(item)
           })
