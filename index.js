@@ -73,6 +73,22 @@ dotenv.config();
       const data = await response.json()
       return data.data.map(({ id, name }) => ({ id, name}))
     }
+
+    const getMetaFields = async (productId) => {
+      const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/${productId}/metafields?key=shipping-groups&namespace=shipping.shipperhq`, { 
+        method: 'GET', 
+        headers: {
+          Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Auth-Token': BIG_ACCESS_TOKEN
+        },
+
+      })
+
+      const data = await response?.json()
+
+      return data.data
+    }
     
     const getProducts = async (page = 1) => {
       const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/?page=${page}&is_visible=true&include=images,custom_fields`, { 
@@ -94,10 +110,10 @@ dotenv.config();
         return customfields.find(field => field.name === 'facet_color')?.value
       }
 
-
-
       if(data.meta.pagination.current_page <= data.meta.pagination.total_pages) {
-        data.data.forEach(item => {
+        for(const item of data.data) {
+          const metafields = await getMetaFields(item.id)
+
           products.push({
             objectID: item.id,
             name: item.name,
@@ -113,12 +129,13 @@ dotenv.config();
             total_sold: item.total_sold,
             date_created: dayjs(item.date_created).unix(),
             gtin: item.gtin,
-            facet_color: getFacetColor(item)
+            facet_color: getFacetColor(item),
+            online_exclusive: metafields.length > 0
           })
 
           addCatIds(item.categories)
           addBrandId(item.brand_id)
-        })
+        }
 
         await getProducts(data.meta.pagination.current_page + 1)
       }
@@ -149,6 +166,8 @@ dotenv.config();
         brand: brands.find(brand => brand.id === prod.brand)?.name
       }
     })
+
+
 
     await index.clearObjects();
 
