@@ -75,6 +75,7 @@ dotenv.config();
     }
 
     const getMetaFields = async (productId) => {
+      try {
       const response = await fetch(`${BIG_BASE_URL}/${BIG_STORE_HASH}/${BIG_VERSION}/catalog/products/${productId}/metafields?key=shipping-groups&namespace=shipping.shipperhq`, { 
         method: 'GET', 
         headers: {
@@ -88,6 +89,9 @@ dotenv.config();
       const data = await response?.json()
 
       return data.data
+    } catch (err) {
+      console.log('error', err)
+    }
     }
     
     const getProducts = async (page = 1) => {
@@ -130,7 +134,7 @@ dotenv.config();
             date_created: dayjs(item.date_created).unix(),
             gtin: item.gtin,
             facet_color: getFacetColor(item),
-            online_exclusive: metafields.length > 0
+            online_exclusive: metafields ? metafields.length > 0 : false
           })
 
           addCatIds(item.categories)
